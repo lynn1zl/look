@@ -30,7 +30,7 @@ const ICON = {
 const ACCENTS = ['#3182f6', '#03b26c', '#ff8a3d', '#f04452', '#a234c7', '#191f28'];
 const blankImg = () => ({ src: '', x: 50, y: 50, z: 1, fit: 'cover' });
 const blankChar = (i) => ({
-  name: '', gender: '', age: '', height: '',
+  tag: i ? 'B' : 'A', name: '', gender: '', age: '', height: '',
   hairLabel: '머리색', eyeLabel: '눈색',
   hair: i ? '#E8D3B0' : '#2B2D33', eye: i ? '#4C7CC9' : '#8A5A3B',
   features: '',
@@ -121,11 +121,14 @@ function charHTML(c) {
   const meta = (f, k, ph) => `<div class="meta-item"><span class="k">${k}</span>${ce(`data-c="${c}" data-f="${f}"`, ph, 'v')}</div>`;
   return `<section class="char${c ? ' mirror' : ''}" data-c="${c}">
     <header class="id">
-      ${ce(`data-c="${c}" data-f="name"`, '이름', 'name')}
-      <div class="meta">
-        ${meta('gender', '성별', '—')}
-        ${meta('age', '나이', '—')}
-        ${meta('height', '키', '—')}
+      ${ce(`data-c="${c}" data-f="tag"`, c ? 'B' : 'A', 'badge')}
+      <div class="id-txt">
+        ${ce(`data-c="${c}" data-f="name"`, '이름', 'name')}
+        <div class="meta">
+          ${meta('gender', '성별', '—')}
+          ${meta('age', '나이', '—')}
+          ${meta('height', '키', '—')}
+        </div>
       </div>
     </header>
     <div class="pics">
@@ -136,7 +139,7 @@ function charHTML(c) {
       <div class="block-title">컬러</div>
       <div class="colors">${colorHTML(c, 'hair')}${colorHTML(c, 'eye')}</div>
     </div>
-    <div class="okng">
+    <div class="block okng">
       <div class="okng-row ok"><span class="okng-k">OK</span>${ce(`data-c="${c}" data-f="ok"`, '캐릭터로 가능한 것 한 줄', 'okng-v')}</div>
       <div class="okng-row ng"><span class="okng-k">NG</span>${ce(`data-c="${c}" data-f="ng"`, '캐릭터로 안 되는 것 한 줄', 'okng-v')}</div>
     </div>
@@ -565,7 +568,10 @@ $('#accent-list').addEventListener('click', e => {
   colorInput.click();
 });
 $('#btn-swap').addEventListener('click', () => {
-  S.chars.reverse(); paintAll(); save(); toast('좌우 캐릭터를 바꿨어요');
+  const tags = S.chars.map(c => c.tag);
+  S.chars.reverse();
+  S.chars.forEach((c, i) => { c.tag = tags[i]; });
+  paintAll(); save(); toast('좌우 캐릭터를 바꿨어요');
 });
 
 // 팝오버
@@ -690,6 +696,11 @@ async function renderBlob() {
   stageInner.classList.add('rendering');
   if (compact) { setCompact(false); sheet.style.width = ''; }
   sheet.classList.add('exporting');
+  // 빈 정보는 빠지므로, 처음 보이는 항목 앞의 구분선을 없앰
+  $$('.meta', sheet).forEach(m => {
+    const first = $$('.meta-item', m).find(it => $('.v', it).textContent.trim());
+    if (first) first.classList.add('lead');
+  });
   try {
     await document.fonts.ready;
     const bg = getComputedStyle(sheet).backgroundColor;
@@ -704,6 +715,7 @@ async function renderBlob() {
     return await htmlToImage.toBlob(sheet, opts);
   } finally {
     sheet.classList.remove('exporting');
+    $$('.meta-item.lead', sheet).forEach(it => it.classList.remove('lead'));
     rendering = false;
     fitStage();
     stageInner.classList.remove('rendering');
