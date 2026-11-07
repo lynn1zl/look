@@ -34,11 +34,12 @@ const blankChar = (i) => ({
   hairLabel: '머리색', eyeLabel: '눈색',
   hair: i ? '#E8D3B0' : '#2B2D33', eye: i ? '#4C7CC9' : '#8A5A3B',
   features: '',
-  body: blankImg(), face: blankImg(),
+  ok: '', ng: '',
+  body: blankImg(), face: blankImg(), face2: blankImg(),
 });
 const blankState = () => ({
-  v: 1, mode: 2, theme: 'white', accent: '#3182f6', scale: 2, mark: true,
-  pair: { name: '', rel: '' },
+  v: 1, mode: 2, theme: 'white', accent: '#3182f6', scale: 2,
+  pair: { name: '', rel: '', ab: '', ba: '', source: '' },
   chars: [blankChar(0), blankChar(1)],
 });
 let S = blankState();
@@ -79,7 +80,7 @@ function normalize(d) {
   const out = { ...b, ...d, pair: { ...b.pair, ...(d.pair || {}) } };
   out.chars = [0, 1].map(i => {
     const c = (d.chars && d.chars[i]) || {};
-    return { ...b.chars[i], ...c, body: { ...blankImg(), ...(c.body || {}) }, face: { ...blankImg(), ...(c.face || {}) } };
+    return { ...b.chars[i], ...c, body: { ...blankImg(), ...(c.body || {}) }, face: { ...blankImg(), ...(c.face || {}) }, face2: { ...blankImg(), ...(c.face2 || {}) } };
   });
   return out;
 }
@@ -87,11 +88,12 @@ function normalize(d) {
 /* ---------- 외관표 만들기 ---------- */
 const sheet = $('#sheet');
 
+const SLOT_LABEL = { body: '전신 이미지', face: '두상', face2: '두상 2' };
 function slotHTML(c, kind) {
   const isBody = kind === 'body';
-  return `<div class="slot slot-${kind}" data-c="${c}" data-img="${kind}" tabindex="0" role="button" aria-label="${isBody ? '전신' : '두상'} 이미지">
+  return `<div class="slot slot-${isBody ? 'body' : 'face'}" data-c="${c}" data-img="${kind}" tabindex="0" role="button" aria-label="${SLOT_LABEL[kind]}">
     <img alt="" hidden>
-    <div class="slot-empty">${isBody ? ICON.person : ICON.face}<span>${isBody ? '전신 이미지' : '두상'}</span><small>끌어다 놓기 · 클릭<br>붙여넣기</small></div>
+    <div class="slot-empty">${isBody ? ICON.person : ICON.face}<span>${SLOT_LABEL[kind]}</span><small>끌어다 놓기 · 클릭<br>붙여넣기</small></div>
     <div class="slot-tools">
       <button type="button" data-tool="replace" title="이미지 바꾸기" aria-label="이미지 바꾸기">${ICON.replace}</button>
       <button type="button" data-tool="out" title="축소" aria-label="축소">${ICON.minus}</button>
@@ -118,47 +120,67 @@ function colorHTML(c, key) {
 function charHTML(c) {
   const meta = (f, k, ph) => `<div class="meta-item"><span class="k">${k}</span>${ce(`data-c="${c}" data-f="${f}"`, ph, 'v')}</div>`;
   return `<section class="char${c ? ' mirror' : ''}" data-c="${c}">
-    ${slotHTML(c, 'body')}
-    <div class="info">
-      <div class="id-row">
-        ${slotHTML(c, 'face')}
-        <div class="id">
-          ${ce(`data-c="${c}" data-f="name"`, '이름', 'name')}
-          <div class="meta">
-            ${meta('gender', '성별', '—')}
-            ${meta('age', '나이', '—')}
-            ${meta('height', '키', '—')}
-          </div>
-        </div>
+    <header class="id">
+      ${ce(`data-c="${c}" data-f="name"`, '이름', 'name')}
+      <div class="meta">
+        ${meta('gender', '성별', '—')}
+        ${meta('age', '나이', '—')}
+        ${meta('height', '키', '—')}
       </div>
-      <div class="block">
-        <div class="block-title">컬러</div>
-        <div class="colors">${colorHTML(c, 'hair')}${colorHTML(c, 'eye')}</div>
-      </div>
-      <div class="block feat">
-        <div class="block-title">주요 특징</div>
-        ${ce(`data-c="${c}" data-f="features"`, '예) 왼쪽 눈 밑 점 · 늘 헤드폰을 걸고 다님 · 은색 반지', 'feat-text', true)}
-      </div>
+    </header>
+    <div class="pics">
+      ${slotHTML(c, 'body')}
+      <div class="faces">${slotHTML(c, 'face')}${slotHTML(c, 'face2')}</div>
+    </div>
+    <div class="block">
+      <div class="block-title">컬러</div>
+      <div class="colors">${colorHTML(c, 'hair')}${colorHTML(c, 'eye')}</div>
+    </div>
+    <div class="okng">
+      <div class="okng-row ok"><span class="okng-k">OK</span>${ce(`data-c="${c}" data-f="ok"`, '캐릭터로 가능한 것 한 줄', 'okng-v')}</div>
+      <div class="okng-row ng"><span class="okng-k">NG</span>${ce(`data-c="${c}" data-f="ng"`, '캐릭터로 안 되는 것 한 줄', 'okng-v')}</div>
+    </div>
+    <div class="block feat">
+      <div class="block-title">주요 특징</div>
+      ${ce(`data-c="${c}" data-f="features"`, '예) 왼쪽 눈 밑 점 · 늘 헤드폰을 걸고 다님 · 은색 반지', 'feat-text', true)}
     </div>
   </section>`;
 }
 
+const ARROW = '<svg class="arrow" viewBox="0 0 200 14" preserveAspectRatio="none" aria-hidden="true"><path d="M2 7h186" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><path d="M184 1 198 7l-14 6z" fill="currentColor"/></svg>';
 function buildSheet() {
   sheet.innerHTML = `
     ${charHTML(0)}
     <section class="center">
-      <div class="eyebrow">PAIR</div>
-      ${ce('data-p="name"', '페어명', 'pair-name', true)}
-      <div class="link"><span class="link-dot">${ICON.heart}</span></div>
-      <div class="eyebrow">RELATIONSHIP</div>
-      ${ce('data-p="rel"', '관계성', 'rel', true)}
+      <div class="pair-top">
+        <div class="eyebrow">PAIR</div>
+        ${ce('data-p="name"', '페어명', 'pair-name', true)}
+        ${ce('data-p="rel"', '#페어 특징 #마음껏', 'pair-tags', true)}
+      </div>
+      <div class="rels">
+        <div class="rel-line">
+          <div class="rel-who" data-who="ab"></div>
+          ${ce('data-p="ab"', '서로를 어떻게 생각하는지', 'rel-text', true)}
+          ${ARROW}
+        </div>
+        <div class="rel-line back">
+          <div class="rel-who" data-who="ba"></div>
+          ${ce('data-p="ba"', '서로를 어떻게 생각하는지', 'rel-text', true)}
+          ${ARROW}
+        </div>
+      </div>
     </section>
     ${charHTML(1)}
-    <div class="sheet-mark"><span>${BRAND}</span>외관표 니니닝!</div>`;
+    <footer class="sheet-foot">${ce('data-p="source"', '@커미션 출처 (없으면 비워 두세요)', 'source')}</footer>`;
   // plaintext-only 를 지원하지 않는 브라우저
   const probe = document.createElement('div');
   probe.contentEditable = 'plaintext-only';
   if (probe.contentEditable !== 'plaintext-only') $$('.ce', sheet).forEach(el => el.contentEditable = 'true');
+}
+function paintWho() {
+  const a = S.chars[0].name || 'A', b = S.chars[1].name || 'B';
+  $('[data-who="ab"]', sheet).textContent = `${a} → ${b}`;
+  $('[data-who="ba"]', sheet).textContent = `${b} → ${a}`;
 }
 
 /* ---------- 상태 → 화면 ---------- */
@@ -193,10 +215,11 @@ function paintAll() {
   $$('.ce', sheet).forEach(el => setText(el, fieldValue(el)));
   $$('.slot', sheet).forEach(paintImg);
   paintColors();
+  paintWho();
   paintLook();
 }
 function paintLook() {
-  sheet.className = `sheet theme-${S.theme} mode-${S.mode}${S.mark ? '' : ' no-mark'}${compact ? ' compact' : ''}`;
+  sheet.className = `sheet theme-${S.theme} mode-${S.mode}${compact ? ' compact' : ''}`;
   sheet.style.setProperty('--s-accent', S.accent);
   setSeg($('#mode-seg'), 'mode', S.mode);
   setSeg($('#scale-seg'), 'scale', S.scale);
@@ -204,7 +227,6 @@ function paintLook() {
   $$('#accent-list .accent-dot').forEach(b => b.setAttribute('aria-pressed', b.dataset.accent ? b.dataset.accent === S.accent : !ACCENTS.includes(S.accent)));
   const custom = $('#accent-list .custom');
   if (custom) custom.style.setProperty('--c', ACCENTS.includes(S.accent) ? 'transparent' : S.accent);
-  $('#opt-mark').checked = S.mark;
   $('#btn-swap').hidden = S.mode !== 2;
   requestAnimationFrame(fitStage);
 }
@@ -230,6 +252,7 @@ sheet.addEventListener('input', e => {
   if (el.dataset.p) S.pair[el.dataset.p] = v;
   else if (el.dataset.hex) return; // 컬러코드는 입력을 마칠 때 반영
   else S.chars[+el.dataset.c][el.dataset.f] = v;
+  if (el.dataset.f === 'name') paintWho();
   save();
 });
 sheet.addEventListener('keydown', e => {
@@ -541,7 +564,6 @@ $('#accent-list').addEventListener('click', e => {
   colorInput.style.left = r.left + 'px'; colorInput.style.top = r.bottom + 'px';
   colorInput.click();
 });
-$('#opt-mark').addEventListener('change', e => { S.mark = e.target.checked; paintLook(); save(); });
 $('#btn-swap').addEventListener('click', () => {
   S.chars.reverse(); paintAll(); save(); toast('좌우 캐릭터를 바꿨어요');
 });
@@ -581,7 +603,7 @@ $('#modal-reset').addEventListener('click', e => {
   const b = e.target.closest('[data-reset]'); if (!b) return;
   const r = b.dataset.reset;
   if (r === 'all') {
-    const keep = { mode: S.mode, theme: S.theme, accent: S.accent, scale: S.scale, mark: S.mark };
+    const keep = { mode: S.mode, theme: S.theme, accent: S.accent, scale: S.scale };
     S = { ...blankState(), ...keep };
   } else S.chars[+r] = blankChar(+r);
   paintAll(); save();
