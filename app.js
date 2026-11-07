@@ -39,7 +39,7 @@ const toCol = (v, fb) => {
 const blankChar = (i) => ({
   tag: i ? 'B' : 'A', doodle: '', avBg: 'accent',
   name: '', gender: '', age: '', height: '', job: '',
-  hairLabel: '머리색', eyeLabel: '눈색', eye2Label: '눈색 2',
+  hairLabel: '머리색', eyeLabel: '눈색', eye2Label: '오른쪽 눈',
   hair: col(i ? '#6E4B36' : '#D9AE3F'),
   eye: col(i ? '#4F9A62' : '#F2E15C'),
   eye2On: false, eye2: col(i ? '#7FB0E0' : '#C9A0DC'),
@@ -118,7 +118,18 @@ function slotHTML(c, kind) {
 const ce = (attrs, ph, cls = '', multi = false) =>
   `<div class="ce ${cls}" ${attrs} data-ph="${ph}" contenteditable="plaintext-only" spellcheck="false" ${multi ? 'data-multi' : ''}></div>`;
 
-const COLOR_PH = { hair: '머리색', eye: '눈색', eye2: '눈색 2' };
+const COLOR_PH = { hair: '머리색', eye: '눈색', eye2: '오른쪽 눈' };
+// 눈색 두 칸: 켜면 왼쪽 눈 / 오른쪽 눈, 끄면 다시 눈색 (직접 고친 이름은 그대로)
+function setEye2(c, on) {
+  const ch = S.chars[c];
+  ch.eye2On = on;
+  if (on) {
+    if (!ch.eyeLabel || ch.eyeLabel === '눈색') ch.eyeLabel = '왼쪽 눈';
+    if (!ch.eye2Label || ch.eye2Label === '눈색 2') ch.eye2Label = '오른쪽 눈';
+  } else if (ch.eyeLabel === '왼쪽 눈') ch.eyeLabel = '눈색';
+  $$(`.ce[data-c="${c}"][data-f$="Label"]`, sheet).forEach(el => setText(el, fieldValue(el)));
+  paintColors(); save();
+}
 function colorHTML(c, key) {
   return `<div class="color-row" data-c="${c}" data-color="${key}"${key === 'eye2' ? ' hidden' : ''}>
     <button type="button" class="swatch" data-swatch title="색 · 그라데이션 고르기" aria-label="${COLOR_PH[key]} 고르기"></button>
@@ -266,6 +277,7 @@ function paintColors() {
     const ch = S.chars[+el.dataset.c];
     el.style.setProperty('--key', colorCSS(ch.hair));
     $('[data-add-eye]', el).hidden = ch.eye2On;
+    $('.colors', el).classList.toggle('three', ch.eye2On);
   });
   $$('.avatar', sheet).forEach(paintAvatar);
 }
@@ -278,7 +290,7 @@ function paintAll() {
 }
 function paintLook() {
   sheet.className = `sheet theme-${S.theme} mode-${S.mode}${S.showRel ? '' : ' no-rel'}${compact ? ' compact' : ''}`;
-  $('#opt-rel').checked = S.showRel;
+  $('#btn-rel').setAttribute('aria-pressed', String(S.showRel));
   sheet.style.setProperty('--s-accent', S.accent);
   setSeg($('#mode-seg'), 'mode', S.mode);
   setSeg($('#scale-seg'), 'scale', S.scale);
@@ -287,6 +299,8 @@ function paintLook() {
   const custom = $('#accent-list .custom');
   if (custom) custom.style.setProperty('--c', ACCENTS.includes(S.accent) ? 'transparent' : S.accent);
   $('#btn-swap').hidden = S.mode !== 2;
+  $('#btn-rel').hidden = S.mode !== 2;
+  $('#menu-swap').disabled = S.mode !== 2;
   requestAnimationFrame(fitStage);
 }
 function setSeg(seg, key, val) {
@@ -428,7 +442,7 @@ sheet.addEventListener('click', e => {
   const add = e.target.closest('[data-add-eye]');
   if (add) {
     const c = +add.closest('.char').dataset.c;
-    S.chars[c].eye2On = true; paintColors(); save();
+    setEye2(c, true);
     openCpop(c, 'eye2', $(`.color-row[data-c="${c}"][data-color="eye2"] .swatch`, sheet));
   }
 });
@@ -466,11 +480,11 @@ $('#cp-angle').addEventListener('input', e => { if (!cp) return; cpVal().angle =
 $('#cp-flip').addEventListener('click', () => { if (!cp) return; const v = cpVal(); [v.a, v.b] = [v.b, v.a]; applyCp(); });
 $('#cp-eye2').addEventListener('change', e => {
   if (!cp) return;
-  S.chars[cp.c].eye2On = e.target.checked; applyCp();
+  setEye2(cp.c, e.target.checked); renderCpop(); placeCpop();
 });
 $('#cp-del-eye2').addEventListener('click', () => {
   if (!cp) return;
-  S.chars[cp.c].eye2On = false; paintColors(); save(); closeCpop();
+  setEye2(cp.c, false); closeCpop();
 });
 document.addEventListener('pointerdown', e => {
   if (cp && !cpop.contains(e.target) && !e.target.closest('[data-swatch]')) closeCpop();
@@ -824,7 +838,10 @@ $('#accent-list').addEventListener('click', e => {
   colorInput.style.left = r.left + 'px'; colorInput.style.top = r.bottom + 'px';
   colorInput.click();
 });
-$('#opt-rel').addEventListener('change', e => { S.showRel = e.target.checked; paintLook(); save(); });
+$('#btn-rel').addEventListener('click', () => {
+  S.showRel = !S.showRel; paintLook(); save();
+  toast(S.showRel ? '관계성 칸을 켰어요' : '관계성 칸을 껐어요');
+});
 $('#btn-swap').addEventListener('click', () => {
   const tags = S.chars.map(c => c.tag);
   S.chars.reverse();
@@ -858,6 +875,7 @@ $('#pop-more').addEventListener('click', e => {
   const act = b.dataset.act;
   if (act === 'reset') $('#modal-reset').hidden = false;
   if (act === 'export') exportJSON();
+  if (act === 'swap') $('#btn-swap').click();
 });
 $$('.modal').forEach(m => m.addEventListener('click', e => {
   if (e.target === m || e.target.closest('[data-close]')) m.hidden = true;
