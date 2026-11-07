@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>외관표 니니닝!</title>
+<meta name="description" content="외관표 니니닝! — 전신 · 두상 이미지와 머리색 · 눈색, 특징을 넣어 캐릭터 외관표를 이미지로 저장하는 사이트">
+<meta property="og:title" content="외관표 니니닝!">
+<meta property="og:description" content="이미지를 끌어다 놓기만 하면 완성되는 캐릭터 외관표">
+<meta name="theme-color" content="#f2f4f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101012" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%233182f6'/%3E%3Cg fill='%23fff' transform='translate(6 5) scale(2.17)'%3E%3Cellipse cx='8.4' cy='7.2' rx='2.4' ry='5.6' transform='rotate(-12 8.4 7.2)'/%3E%3Cellipse cx='15.6' cy='7.2' rx='2.4' ry='5.6' transform='rotate(12 15.6 7.2)'/%3E%3Cellipse cx='12' cy='15.4' rx='7' ry='6.3'/%3E%3Ccircle cx='9.4' cy='14.8' r='1' fill='%233182f6'/%3E%3Ccircle cx='14.6' cy='14.8' r='1' fill='%233182f6'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%233182f6'/%3E%3Cg fill='%23fff' transform='translate(6 5) scale(2.17)'%3E%3Cellipse cx='8.4' cy='7.2' rx='2.4' ry='5.6' transform='rotate(-12 8.4 7.2)'/%3E%3Cellipse cx='15.6' cy='7.2' rx='2.4' ry='5.6' transform='rotate(12 15.6 7.2)'/%3E%3Cellipse cx='12' cy='15.4' rx='7' ry='6.3'/%3E%3Ccircle cx='9.4' cy='14.8' r='1' fill='%233182f6'/%3E%3Ccircle cx='14.6' cy='14.8' r='1' fill='%233182f6'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" crossorigin="anonymous" href="https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <header class="appbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-name">외관표 니니닝!</span>
+    </div>
+
+    <div class="seg" id="mode-seg" role="radiogroup" aria-label="인원">
+      <button type="button" role="radio" data-mode="2">2인</button>
+      <button type="button" role="radio" data-mode="1">1인</button>
+      <span class="seg-thumb" aria-hidden="true"></span>
+    </div>
+
+    <div class="appbar-right">
+      <button type="button" class="icon-btn" id="btn-swap" title="좌우 캐릭터 바꾸기" aria-label="좌우 캐릭터 바꾸기"></button>
+      <div class="pop-wrap">
+        <button type="button" class="icon-btn" id="btn-design" title="디자인" aria-label="디자인" aria-haspopup="true"></button>
+        <div class="pop" id="pop-design" hidden>
+          <div class="pop-title">배경</div>
+          <div class="theme-list" id="theme-list">
+            <button type="button" data-theme="white"><span class="theme-chip t-white"></span>화이트</button>
+            <button type="button" data-theme="cloud"><span class="theme-chip t-cloud"></span>클라우드</button>
+            <button type="button" data-theme="dark"><span class="theme-chip t-dark"></span>다크</button>
+          </div>
+          <div class="pop-title">포인트 색</div>
+          <div class="accent-list" id="accent-list"></div>
+          <div class="pop-title">저장 화질</div>
+          <div class="seg seg-sm" id="scale-seg" role="radiogroup" aria-label="저장 화질">
+            <button type="button" role="radio" data-scale="1">1×</button>
+            <button type="button" role="radio" data-scale="2">2×</button>
+            <button type="button" role="radio" data-scale="3">3×</button>
+            <span class="seg-thumb" aria-hidden="true"></span>
+          </div>
+          <label class="switch-row">
+            <span>니니닝 로고 표시</span>
+            <input type="checkbox" id="opt-mark" class="switch">
+          </label>
+        </div>
+      </div>
+      <div class="pop-wrap">
+        <button type="button" class="icon-btn" id="btn-more" title="더 보기" aria-label="더 보기" aria-haspopup="true"></button>
+        <div class="pop menu" id="pop-more" hidden>
+          <button type="button" data-act="export">작업 파일로 내보내기</button>
+          <label>작업 파일 불러오기<input type="file" id="file-import" accept="application/json,.json" hidden></label>
+          <div class="menu-sep"></div>
+          <button type="button" data-act="help">사용 방법</button>
+          <button type="button" data-act="reset" class="danger">초기화…</button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-soft" id="btn-copy" title="이미지를 클립보드에 복사">
+        <span class="btn-icon" data-icon="copy"></span><span class="btn-label">복사</span>
+      </button>
+      <button type="button" class="btn btn-primary" id="btn-save" title="이미지 저장 (Ctrl/⌘ + S)">
+        <span class="btn-icon" data-icon="download"></span><span class="btn-label">이미지 저장</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="stage" id="stage">
+    <div class="stage-inner" id="stage-inner">
+      <div class="scaler" id="scaler">
+        <div class="sheet" id="sheet"></div>
+      </div>
+    </div>
+    <p class="stage-hint" id="stage-hint">칸을 눌러 바로 입력하세요 · 이미지는 끌어다 놓기, 클릭, <kbd>Ctrl/⌘ + V</kbd> 붙여넣기</p>
+  </main>
+
+  <div class="zoom" id="zoom">
+    <button type="button" class="zoom-btn" data-zoom="out" aria-label="축소"></button>
+    <button type="button" class="zoom-val" data-zoom="fit" id="zoom-val" title="화면에 맞추기">100%</button>
+    <button type="button" class="zoom-btn" data-zoom="in" aria-label="확대"></button>
+  </div>
+</div>
+
+<input type="file" id="file-img" accept="image/*" hidden>
+<input type="color" id="color-input" tabindex="-1" aria-hidden="true">
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="modal" id="modal-help" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="help-title">
+    <h2 id="help-title">사용 방법</h2>
+    <ul class="help-list">
+      <li><b>글자</b> — 외관표 위의 칸을 눌러 바로 입력해요. 빈 칸은 저장할 때 안내 문구 없이 깔끔하게 비워져요.</li>
+      <li><b>이미지</b> — 전신 · 두상 칸에 파일을 끌어다 놓거나, 눌러서 고르거나, 복사한 이미지를 <kbd>Ctrl/⌘ + V</kbd>로 붙여넣어요. 칸 위에 마우스를 올린 채 붙여넣으면 그 칸에 들어가요.</li>
+      <li><b>이미지 위치</b> — 이미지를 끌어서 보이는 부분을 옮기고, 휠이나 <b>+ / −</b> 버튼으로 확대해요. <b>맞춤</b>을 누르면 잘리지 않게 전체가 보여요.</li>
+      <li><b>색</b> — 동그란 색 칩을 누르면 컬러판이 열려요. 컬러코드(#RRGGBB)를 직접 고쳐 써도 돼요. 스포이트 버튼이 보이면 화면 속 그림에서 바로 색을 뽑을 수 있어요.</li>
+      <li><b>2인 · 1인</b> — 위쪽에서 인원을 고르고, <span class="inline-icon" data-icon="swap"></span> 버튼으로 좌우 캐릭터를 바꿔요.</li>
+      <li><b>저장</b> — ‘이미지 저장’은 PNG 파일로, ‘복사’는 클립보드로 보내요. 작업 내용은 이 브라우저에 자동 저장되고, 다른 기기로 옮길 땐 ‘작업 파일로 내보내기’를 써요.</li>
+    </ul>
+    <p class="help-note">넣은 이미지와 글은 서버로 보내지지 않고 이 브라우저 안에만 저장돼요.</p>
+    <div class="modal-actions"><button type="button" class="btn btn-primary" data-close>확인</button></div>
+  </div>
+</div>
+
+<div class="modal" id="modal-reset" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="reset-title">
+    <h2 id="reset-title">무엇을 초기화할까요?</h2>
+    <div class="reset-list">
+      <button type="button" class="reset-opt" data-reset="0">왼쪽 캐릭터</button>
+      <button type="button" class="reset-opt" data-reset="1">오른쪽 캐릭터</button>
+      <button type="button" class="reset-opt danger" data-reset="all">전부 지우기</button>
+    </div>
+    <div class="modal-actions"><button type="button" class="btn btn-ghost" data-close>취소</button></div>
+  </div>
+</div>
+
+<script src="lib/html-to-image.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
