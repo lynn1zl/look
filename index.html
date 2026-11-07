@@ -42,6 +42,10 @@
           </div>
           <div class="pop-title">포인트 색</div>
           <div class="accent-list" id="accent-list"></div>
+          <label class="switch-row switch-row-top">
+            <span>서로를 향한 마음 <small>가운데 화살표 칸</small></span>
+            <input type="checkbox" id="opt-rel" class="switch">
+          </label>
           <div class="pop-title">저장 화질</div>
           <div class="seg seg-sm" id="scale-seg" role="radiogroup" aria-label="저장 화질">
             <button type="button" role="radio" data-scale="1">1×</button>
@@ -57,7 +61,6 @@
           <button type="button" data-act="export">작업 파일로 내보내기</button>
           <label>작업 파일 불러오기<input type="file" id="file-import" accept="application/json,.json" hidden></label>
           <div class="menu-sep"></div>
-          <button type="button" data-act="help">사용 방법</button>
           <button type="button" data-act="reset" class="danger">초기화…</button>
         </div>
       </div>
@@ -89,24 +92,60 @@
 <input type="file" id="file-img" accept="image/*" hidden>
 <input type="color" id="color-input" tabindex="-1" aria-hidden="true">
 
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="cpop" id="cpop" role="dialog" aria-label="색 고르기" hidden>
+  <div class="cp-head"><span class="cp-preview" id="cp-preview"></span><span class="cp-title" id="cp-title">머리색</span></div>
+  <div class="seg seg-sm" id="cp-type" role="radiogroup" aria-label="칠하는 방식">
+    <button type="button" role="radio" data-type="solid">단색</button>
+    <button type="button" role="radio" data-type="linear">직선</button>
+    <button type="button" role="radio" data-type="radial">원형</button>
+    <button type="button" role="radio" data-type="split">투톤</button>
+    <span class="seg-thumb" aria-hidden="true"></span>
+  </div>
+    <div class="cp-stop" data-stop="a">
+      <label class="cp-chip"><input type="color" aria-label="첫 번째 색"></label>
+      <div class="cp-field"><span class="cp-lab">첫 번째 색</span><input class="cp-hex" type="text" maxlength="24" spellcheck="false" autocomplete="off" aria-label="첫 번째 색 컬러코드"></div>
+      <button type="button" class="cp-drop" title="화면에서 색 뽑기" aria-label="스포이트" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14.5 6.5 3 3M4 20l1-4 9-9 3 3-9 9-4 1Z"/><path d="m13 5 2-2a2.1 2.1 0 0 1 3 0l3 3a2.1 2.1 0 0 1 0 3l-2 2"/></svg></button>
+    </div>
+    <div class="cp-stop" data-stop="b">
+      <label class="cp-chip"><input type="color" aria-label="두 번째 색"></label>
+      <div class="cp-field"><span class="cp-lab">두 번째 색</span><input class="cp-hex" type="text" maxlength="24" spellcheck="false" autocomplete="off" aria-label="두 번째 색 컬러코드"></div>
+      <button type="button" class="cp-drop" title="화면에서 색 뽑기" aria-label="스포이트" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14.5 6.5 3 3M4 20l1-4 9-9 3 3-9 9-4 1Z"/><path d="m13 5 2-2a2.1 2.1 0 0 1 3 0l3 3a2.1 2.1 0 0 1 0 3l-2 2"/></svg></button>
+    </div>
+  <div class="cp-angle" id="cp-angle-row"><span>방향</span><input type="range" id="cp-angle" min="0" max="360" step="5" aria-label="방향"><b id="cp-angle-val">135°</b></div>
+  <button type="button" class="cp-link" id="cp-flip">두 색 순서 바꾸기</button>
+  <label class="switch-row" id="cp-eye2-row"><span>눈색 두 칸 <small>오드아이</small></span><input type="checkbox" class="switch" id="cp-eye2"></label>
+  <button type="button" class="cp-link danger" id="cp-del-eye2">이 눈색 칸 지우기</button>
+</div>
 
-<div class="modal" id="modal-help" hidden>
-  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="help-title">
-    <h2 id="help-title">사용 방법</h2>
-    <ul class="help-list">
-      <li><b>글자</b> — 외관표 위의 칸을 눌러 바로 입력해요. 빈 칸은 저장할 때 안내 문구 없이 깔끔하게 비워져요.</li>
-      <li><b>이미지</b> — 전신 · 두상 칸에 파일을 끌어다 놓거나, 눌러서 고르거나, 복사한 이미지를 <kbd>Ctrl/⌘ + V</kbd>로 붙여넣어요. 칸 위에 마우스를 올린 채 붙여넣으면 그 칸에 들어가요.</li>
-      <li><b>이미지 위치</b> — 이미지를 끌어서 보이는 부분을 옮기고, 휠이나 <b>+ / −</b> 버튼으로 확대해요. <b>맞춤</b>을 누르면 잘리지 않게 전체가 보여요.</li>
-      <li><b>색</b> — 동그란 색 칩을 누르면 컬러판이 열려요. 컬러코드(#RRGGBB)를 직접 고쳐 써도 돼요. 스포이트 버튼이 보이면 화면 속 그림에서 바로 색을 뽑을 수 있어요.</li>
-      <li><b>2인 · 1인</b> — 위쪽에서 인원을 고르고, <span class="inline-icon" data-icon="swap"></span> 버튼으로 좌우 캐릭터를 바꿔요.</li>
-      <li><b>커미션 출처</b> — 외관표 오른쪽 아래 칸에 적어요. 비워 두면 저장 이미지에 나오지 않아요.</li>
-      <li><b>저장</b> — ‘이미지 저장’은 PNG 파일로, ‘복사’는 클립보드로 보내요. 작업 내용은 이 브라우저에 자동 저장되고, 다른 기기로 옮길 땐 ‘작업 파일로 내보내기’를 써요.</li>
-    </ul>
-    <p class="help-note">넣은 이미지와 글은 서버로 보내지지 않고 이 브라우저 안에만 저장돼요.</p>
-    <div class="modal-actions"><button type="button" class="btn btn-primary" data-close>확인</button></div>
+<div class="modal" id="modal-draw" hidden>
+  <div class="modal-card draw-card" role="dialog" aria-modal="true" aria-labelledby="draw-title">
+    <h2 id="draw-title">동그라미 꾸미기</h2>
+    <p class="draw-sub">마우스나 손가락으로 바로 그려요. 그림이 없으면 글자가 보여요.</p>
+    <div class="draw-stage" id="draw-stage">
+      <canvas id="draw-cv" width="600" height="600"></canvas>
+      <svg class="draw-guide" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 8v84M8 48h84" /><ellipse cx="50" cy="52" rx="30" ry="34"/></svg>
+    </div>
+    <div class="draw-row">
+      <div class="pen-colors" id="pen-colors"></div>
+      <div class="pen-sizes" id="pen-sizes">
+        <button type="button" data-size="6" aria-label="가는 펜"><i style="--s:5px"></i></button>
+        <button type="button" data-size="12" aria-label="중간 펜"><i style="--s:9px"></i></button>
+        <button type="button" data-size="22" aria-label="굵은 펜"><i style="--s:14px"></i></button>
+      </div>
+    </div>
+    <div class="draw-acts">
+      <button type="button" data-draw="face">기본 얼굴</button>
+      <button type="button" data-draw="eraser">지우개</button>
+      <button type="button" data-draw="undo">되돌리기</button>
+      <button type="button" data-draw="clear">전체 지우기</button>
+    </div>
+    <div class="draw-opt"><span>배경</span><div class="bg-list" id="bg-list"></div></div>
+    <div class="draw-opt"><span>글자</span><input id="draw-letter" class="draw-letter" maxlength="2" placeholder="A" autocomplete="off"></div>
+    <div class="modal-actions"><button type="button" class="btn btn-ghost" data-close>취소</button><button type="button" class="btn btn-primary" id="draw-done">완료</button></div>
   </div>
 </div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <div class="modal" id="modal-reset" hidden>
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="reset-title">

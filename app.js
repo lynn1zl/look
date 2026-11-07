@@ -29,16 +29,26 @@ const ICON = {
 /* ---------- 상태 ---------- */
 const ACCENTS = ['#3182f6', '#03b26c', '#ff8a3d', '#f04452', '#a234c7', '#191f28'];
 const blankImg = () => ({ src: '', x: 50, y: 50, z: 1, fit: 'cover' });
+// 색: 단색(solid) · 직선(linear) · 원형(radial) · 투톤(split)
+const col = (a, b = a, type = 'solid', angle = 135) => ({ type, a, b, angle });
+const toCol = (v, fb) => {
+  if (typeof v === 'string') return col(v);
+  if (v && typeof v === 'object' && v.a) return { ...col(v.a), ...v };
+  return fb;
+};
 const blankChar = (i) => ({
-  tag: i ? 'B' : 'A', name: '', gender: '', age: '', height: '',
-  hairLabel: '머리색', eyeLabel: '눈색',
-  hair: i ? '#E8D3B0' : '#2B2D33', eye: i ? '#4C7CC9' : '#8A5A3B',
+  tag: i ? 'B' : 'A', doodle: '', avBg: 'accent',
+  name: '', gender: '', age: '', height: '', job: '',
+  hairLabel: '머리색', eyeLabel: '눈색', eye2Label: '눈색 2',
+  hair: col(i ? '#6E4B36' : '#D9AE3F'),
+  eye: col(i ? '#4F9A62' : '#F2E15C'),
+  eye2On: false, eye2: col(i ? '#7FB0E0' : '#C9A0DC'),
   features: '',
   ok: '', ng: '',
   body: blankImg(), face: blankImg(), face2: blankImg(),
 });
 const blankState = () => ({
-  v: 1, mode: 2, theme: 'white', accent: '#3182f6', scale: 2,
+  v: 2, mode: 2, theme: 'white', accent: '#3182f6', scale: 2, showRel: true,
   pair: { name: '', rel: '', ab: '', ba: '', source: '' },
   chars: [blankChar(0), blankChar(1)],
 });
@@ -80,7 +90,9 @@ function normalize(d) {
   const out = { ...b, ...d, pair: { ...b.pair, ...(d.pair || {}) } };
   out.chars = [0, 1].map(i => {
     const c = (d.chars && d.chars[i]) || {};
-    return { ...b.chars[i], ...c, body: { ...blankImg(), ...(c.body || {}) }, face: { ...blankImg(), ...(c.face || {}) }, face2: { ...blankImg(), ...(c.face2 || {}) } };
+    const o = { ...b.chars[i], ...c, body: { ...blankImg(), ...(c.body || {}) }, face: { ...blankImg(), ...(c.face || {}) }, face2: { ...blankImg(), ...(c.face2 || {}) } };
+    ['hair', 'eye', 'eye2'].forEach(k => { o[k] = toCol(c[k], b.chars[i][k]); });
+    return o;
   });
   return out;
 }
@@ -106,14 +118,14 @@ function slotHTML(c, kind) {
 const ce = (attrs, ph, cls = '', multi = false) =>
   `<div class="ce ${cls}" ${attrs} data-ph="${ph}" contenteditable="plaintext-only" spellcheck="false" ${multi ? 'data-multi' : ''}></div>`;
 
+const COLOR_PH = { hair: '머리색', eye: '눈색', eye2: '눈색 2' };
 function colorHTML(c, key) {
-  return `<div class="color-row" data-c="${c}" data-color="${key}">
-    <button type="button" class="swatch" data-swatch title="컬러판에서 고르기" aria-label="색 고르기"></button>
+  return `<div class="color-row" data-c="${c}" data-color="${key}"${key === 'eye2' ? ' hidden' : ''}>
+    <button type="button" class="swatch" data-swatch title="색 · 그라데이션 고르기" aria-label="${COLOR_PH[key]} 고르기"></button>
     <div class="color-txt">
-      ${ce(`data-c="${c}" data-f="${key}Label"`, key === 'hair' ? '머리색' : '눈색', 'k')}
-      ${ce(`data-c="${c}" data-hex="${key}"`, '#000000', 'hex')}
+      ${ce(`data-c="${c}" data-f="${key}Label"`, COLOR_PH[key], 'k')}
+      <span class="hex" data-hex="${key}"></span>
     </div>
-    ${'EyeDropper' in window ? `<button type="button" class="dropper" data-dropper title="화면에서 색 뽑기" aria-label="스포이트">${ICON.dropper}</button>` : ''}
   </div>`;
 }
 
@@ -121,13 +133,14 @@ function charHTML(c) {
   const meta = (f, k, ph) => `<div class="meta-item"><span class="k">${k}</span>${ce(`data-c="${c}" data-f="${f}"`, ph, 'v')}</div>`;
   return `<section class="char${c ? ' mirror' : ''}" data-c="${c}">
     <header class="id">
-      ${ce(`data-c="${c}" data-f="tag"`, c ? 'B' : 'A', 'badge')}
+      <button type="button" class="avatar" data-avatar="${c}" title="눌러서 얼굴 그리기 · 글자 바꾸기" aria-label="${c ? 'B' : 'A'} 동그라미 편집"><img alt="" hidden><span class="avatar-letter"></span></button>
       <div class="id-txt">
         ${ce(`data-c="${c}" data-f="name"`, '이름', 'name')}
         <div class="meta">
           ${meta('gender', '성별', '—')}
           ${meta('age', '나이', '—')}
           ${meta('height', '키', '—')}
+          ${meta('job', '직업', '—')}
         </div>
       </div>
     </header>
@@ -136,8 +149,8 @@ function charHTML(c) {
       <div class="faces">${slotHTML(c, 'face')}${slotHTML(c, 'face2')}</div>
     </div>
     <div class="block">
-      <div class="block-title">컬러</div>
-      <div class="colors">${colorHTML(c, 'hair')}${colorHTML(c, 'eye')}</div>
+      <div class="block-title">컬러<button type="button" class="add-eye" data-add-eye title="눈색을 한 칸 더 넣어요 (오드아이)">+ 눈색 추가</button></div>
+      <div class="colors">${colorHTML(c, 'hair')}${colorHTML(c, 'eye')}${colorHTML(c, 'eye2')}</div>
     </div>
     <div class="block okng">
       <div class="okng-row ok"><span class="okng-k">OK</span>${ce(`data-c="${c}" data-f="ok"`, '캐릭터로 가능한 것 한 줄', 'okng-v')}</div>
@@ -145,7 +158,7 @@ function charHTML(c) {
     </div>
     <div class="block feat">
       <div class="block-title">주요 특징</div>
-      ${ce(`data-c="${c}" data-f="features"`, '예) 왼쪽 눈 밑 점 · 늘 헤드폰을 걸고 다님 · 은색 반지', 'feat-text', true)}
+      ${ce(`data-c="${c}" data-f="features"`, '예) 입술점 · 투톤 머리 · 피어싱 · 약지에 은반지', 'feat-text', true)}
     </div>
   </section>`;
 }
@@ -207,12 +220,54 @@ function paintImg(slot) {
   img.style.transformOrigin = `${im.x}% ${im.y}%`;
   img.style.transform = im.z !== 1 ? `scale(${im.z})` : '';
 }
+function colorCSS(v) {
+  if (!v) return '#ddd';
+  if (v.type === 'linear') return `linear-gradient(${v.angle}deg, ${v.a}, ${v.b})`;
+  if (v.type === 'radial') return `radial-gradient(circle at 35% 30%, ${v.a}, ${v.b})`;
+  if (v.type === 'split') return `linear-gradient(${v.angle}deg, ${v.a} 50%, ${v.b} 50%)`;
+  return v.a;
+}
+const colorText = v => v.type === 'solid' ? v.a : `${v.a} → ${v.b}`;
+function luminance(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const ch = [n >> 16 & 255, n >> 8 & 255, n & 255].map(x => { x /= 255; return x <= .03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; });
+  return .2126 * ch[0] + .7152 * ch[1] + .0722 * ch[2];
+}
+function avatarBg(ch) {
+  if (ch.avBg === 'hair') return colorCSS(ch.hair);
+  if (ch.avBg === 'white') return '#ffffff';
+  if (ch.avBg === 'gray') return 'var(--s-card)';
+  return 'var(--s-accent)';
+}
+function avatarInk(ch) {
+  if (ch.avBg === 'white' || ch.avBg === 'gray') return 'var(--s-text)';
+  if (ch.avBg === 'hair') return luminance(ch.hair.a) > .5 ? '#191f28' : '#ffffff';
+  return '#ffffff';
+}
+function paintAvatar(el) {
+  const ch = S.chars[+el.dataset.avatar];
+  el.style.background = avatarBg(ch);
+  el.style.color = avatarInk(ch);
+  el.classList.toggle('light', ch.avBg === 'white' || ch.avBg === 'gray');
+  const img = $('img', el);
+  if (ch.doodle) { if (img.getAttribute('src') !== ch.doodle) img.src = ch.doodle; img.hidden = false; }
+  else { img.hidden = true; img.removeAttribute('src'); }
+  $('.avatar-letter', el).textContent = ch.doodle ? '' : (ch.tag || '');
+  el.classList.toggle('is-empty', !ch.doodle && !ch.tag);
+}
 function paintColors() {
   $$('.color-row', sheet).forEach(row => {
-    const c = S.chars[+row.dataset.c];
-    $('.swatch', row).style.setProperty('--c', c[row.dataset.color]);
+    const c = S.chars[+row.dataset.c], key = row.dataset.color;
+    $('.swatch', row).style.background = colorCSS(c[key]);
+    $('.hex', row).textContent = colorText(c[key]);
+    if (key === 'eye2') row.hidden = !c.eye2On;
   });
-  $$('.char', sheet).forEach(el => el.style.setProperty('--key', S.chars[+el.dataset.c].hair));
+  $$('.char', sheet).forEach(el => {
+    const ch = S.chars[+el.dataset.c];
+    el.style.setProperty('--key', colorCSS(ch.hair));
+    $('[data-add-eye]', el).hidden = ch.eye2On;
+  });
+  $$('.avatar', sheet).forEach(paintAvatar);
 }
 function paintAll() {
   $$('.ce', sheet).forEach(el => setText(el, fieldValue(el)));
@@ -222,7 +277,8 @@ function paintAll() {
   paintLook();
 }
 function paintLook() {
-  sheet.className = `sheet theme-${S.theme} mode-${S.mode}${compact ? ' compact' : ''}`;
+  sheet.className = `sheet theme-${S.theme} mode-${S.mode}${S.showRel ? '' : ' no-rel'}${compact ? ' compact' : ''}`;
+  $('#opt-rel').checked = S.showRel;
   sheet.style.setProperty('--s-accent', S.accent);
   setSeg($('#mode-seg'), 'mode', S.mode);
   setSeg($('#scale-seg'), 'scale', S.scale);
@@ -306,38 +362,239 @@ function parseColor(str) {
   return '#' + m.slice(0, 3).map(n => Math.round(+n).toString(16).padStart(2, '0')).join('').toUpperCase();
 }
 
-/* ---------- 색 고르기 ---------- */
-const colorInput = $('#color-input');
+/* ---------- 색 고르기 (단색 · 그라데이션) ---------- */
+const colorInput = $('#color-input'); // 포인트 색 직접 고르기용
 let colorTarget = null;
-sheet.addEventListener('click', async e => {
+colorInput.addEventListener('input', () => {
+  if (colorTarget?.accent) { S.accent = colorInput.value.toUpperCase(); paintLook(); save(); }
+});
+
+const cpop = $('#cpop');
+let cp = null; // { c, key, anchor }
+const cpVal = () => S.chars[cp.c][cp.key];
+function mixHex(hex, to, k) {
+  const a = parseInt(hex.slice(1), 16), b = parseInt(to.slice(1), 16);
+  const m = (sh) => Math.round(((a >> sh) & 255) * (1 - k) + ((b >> sh) & 255) * k);
+  return '#' + [16, 8, 0].map(sh => m(sh).toString(16).padStart(2, '0')).join('').toUpperCase();
+}
+function renderCpop() {
+  const v = cpVal(), ch = S.chars[cp.c];
+  $('#cp-preview').style.background = colorCSS(v);
+  $('#cp-title').textContent = ch[cp.key + 'Label'] || COLOR_PH[cp.key];
+  setSeg($('#cp-type'), 'type', v.type);
+  ['a', 'b'].forEach(s => {
+    const row = $(`.cp-stop[data-stop="${s}"]`, cpop);
+    $('input[type=color]', row).value = v[s].toLowerCase();
+    $('.cp-chip', row).style.background = v[s];
+    const hx = $('.cp-hex', row);
+    if (document.activeElement !== hx) hx.value = v[s];
+  });
+  const grad = v.type !== 'solid';
+  $('.cp-stop[data-stop="b"]', cpop).hidden = !grad;
+  $('#cp-flip').hidden = !grad;
+  $('#cp-angle-row').hidden = !(v.type === 'linear' || v.type === 'split');
+  $('#cp-angle').value = v.angle;
+  $('#cp-angle-val').textContent = v.angle + '°';
+  $('.cp-stop[data-stop="a"] .cp-lab', cpop).textContent = grad ? '첫 번째 색' : '색';
+  $('#cp-eye2-row').hidden = cp.key !== 'eye';
+  $('#cp-eye2').checked = ch.eye2On;
+  $('#cp-del-eye2').hidden = cp.key !== 'eye2';
+}
+function placeCpop() {
+  const r = cp.anchor.getBoundingClientRect();
+  const w = cpop.offsetWidth, h = cpop.offsetHeight;
+  let left = Math.min(Math.max(12, r.left + r.width / 2 - w / 2), innerWidth - w - 12);
+  let top = r.bottom + 10;
+  if (top + h > innerHeight - 12) top = Math.max(12, r.top - h - 10);
+  cpop.style.left = left + 'px'; cpop.style.top = top + 'px';
+}
+function openCpop(c, key, anchor) {
+  cp = { c, key, anchor };
+  cpop.hidden = false;
+  renderCpop();
+  placeCpop();
+}
+function closeCpop() { cpop.hidden = true; cp = null; }
+function applyCp() { paintColors(); renderCpop(); placeCpop(); save(); }
+
+sheet.addEventListener('click', e => {
   const sw = e.target.closest('[data-swatch]');
   if (sw) {
     const row = sw.closest('.color-row');
-    colorTarget = { c: +row.dataset.c, key: row.dataset.color };
-    colorInput.value = S.chars[colorTarget.c][colorTarget.key].toLowerCase();
-    const r = sw.getBoundingClientRect();
-    colorInput.style.left = r.left + 'px'; colorInput.style.top = r.bottom + 'px';
-    colorInput.click();
+    if (cp && cp.anchor === sw) { closeCpop(); return; }
+    openCpop(+row.dataset.c, row.dataset.color, sw);
     return;
   }
-  const dp = e.target.closest('[data-dropper]');
-  if (dp) {
-    const row = dp.closest('.color-row');
-    try {
-      const { sRGBHex } = await new window.EyeDropper().open();
-      const hex = parseColor(sRGBHex);
-      if (hex) { S.chars[+row.dataset.c][row.dataset.color] = hex; paintColors(); paintAll(); save(); }
-    } catch { /* 취소 */ }
+  const add = e.target.closest('[data-add-eye]');
+  if (add) {
+    const c = +add.closest('.char').dataset.c;
+    S.chars[c].eye2On = true; paintColors(); save();
+    openCpop(c, 'eye2', $(`.color-row[data-c="${c}"][data-color="eye2"] .swatch`, sheet));
   }
 });
-colorInput.addEventListener('input', () => {
-  if (colorTarget?.accent) { S.accent = colorInput.value.toUpperCase(); paintLook(); save(); return; }
-  if (!colorTarget) return;
-  S.chars[colorTarget.c][colorTarget.key] = colorInput.value.toUpperCase();
-  paintColors();
-  const hexEl = $(`.ce[data-c="${colorTarget.c}"][data-hex="${colorTarget.key}"]`, sheet);
-  hexEl.textContent = S.chars[colorTarget.c][colorTarget.key];
-  save();
+$('#cp-type').addEventListener('click', e => {
+  const btn = e.target.closest('[data-type]'); if (!btn || !cp) return;
+  const v = cpVal();
+  if (v.type === 'solid' && btn.dataset.type !== 'solid' && v.b === v.a) v.b = mixHex(v.a, luminance(v.a) > .5 ? '#000000' : '#FFFFFF', .45);
+  v.type = btn.dataset.type;
+  applyCp();
+});
+$$('.cp-stop', cpop).forEach(row => {
+  const s = row.dataset.stop;
+  $('input[type=color]', row).addEventListener('input', e => { if (!cp) return; cpVal()[s] = e.target.value.toUpperCase(); applyCp(); });
+  const hx = $('.cp-hex', row);
+  const commit = () => {
+    if (!cp) return;
+    const hex = parseColor(hx.value);
+    if (hex) { cpVal()[s] = hex; applyCp(); } else { toast('컬러코드는 #RRGGBB 형식으로 입력해 주세요'); hx.value = cpVal()[s]; }
+  };
+  hx.addEventListener('change', commit);
+  hx.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); commit(); hx.blur(); } });
+  const dp = $('.cp-drop', row);
+  if ('EyeDropper' in window) {
+    dp.hidden = false;
+    dp.addEventListener('click', async () => {
+      try {
+        const { sRGBHex } = await new window.EyeDropper().open();
+        const hex = parseColor(sRGBHex);
+        if (hex && cp) { cpVal()[s] = hex; applyCp(); }
+      } catch { /* 취소 */ }
+    });
+  }
+});
+$('#cp-angle').addEventListener('input', e => { if (!cp) return; cpVal().angle = +e.target.value; applyCp(); });
+$('#cp-flip').addEventListener('click', () => { if (!cp) return; const v = cpVal(); [v.a, v.b] = [v.b, v.a]; applyCp(); });
+$('#cp-eye2').addEventListener('change', e => {
+  if (!cp) return;
+  S.chars[cp.c].eye2On = e.target.checked; applyCp();
+});
+$('#cp-del-eye2').addEventListener('click', () => {
+  if (!cp) return;
+  S.chars[cp.c].eye2On = false; paintColors(); save(); closeCpop();
+});
+document.addEventListener('pointerdown', e => {
+  if (cp && !cpop.contains(e.target) && !e.target.closest('[data-swatch]')) closeCpop();
+});
+window.addEventListener('resize', () => { if (cp) placeCpop(); });
+$('#stage').addEventListener('scroll', () => { if (cp) placeCpop(); }, { passive: true });
+
+/* ---------- 동그라미: 글자 · 얼굴 그리기 ---------- */
+const drawModal = $('#modal-draw');
+const cv = $('#draw-cv');
+const g = cv.getContext('2d');
+const PEN_SIZES = [6, 12, 22];
+const AV_BGS = [['accent', '포인트'], ['hair', '머리색'], ['white', '흰색'], ['gray', '회색']];
+let dr = null; // 편집 중 상태
+function snapshot() {
+  dr.undo.push(g.getImageData(0, 0, cv.width, cv.height));
+  if (dr.undo.length > 20) dr.undo.shift();
+}
+function paintDrawUI() {
+  const ch = S.chars[dr.c];
+  const fake = { ...ch, avBg: dr.bg };
+  $('#draw-stage').style.background = avatarBg(fake).replace('var(--s-accent)', S.accent).replace('var(--s-card)', '#f2f4f6');
+  $$('#pen-colors button').forEach(b => b.setAttribute('aria-pressed', !dr.eraser && b.dataset.pen === dr.color));
+  $$('#pen-sizes button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.size === dr.size));
+  $('[data-draw="eraser"]').setAttribute('aria-pressed', dr.eraser);
+  $$('#bg-list button').forEach(b => b.setAttribute('aria-pressed', b.dataset.bg === dr.bg));
+  $('[data-draw="undo"]').disabled = !dr.undo.length;
+}
+async function openDraw(c) {
+  const ch = S.chars[c];
+  dr = { c, color: '#191F28', size: PEN_SIZES[1], eraser: false, bg: ch.avBg, undo: [] };
+  const hair = ch.hair.a, eye = ch.eye.a;
+  $('#pen-colors').innerHTML = ['#191F28', '#FFFFFF', '#F04452', '#FF8A3D', hair, eye]
+    .filter((v, i, arr) => arr.indexOf(v) === i)
+    .map(v => `<button type="button" class="pen-dot" data-pen="${v}" style="--c:${v}" aria-label="펜 색 ${v}"></button>`).join('');
+  $('#bg-list').innerHTML = AV_BGS.map(([k, label]) => `<button type="button" data-bg="${k}">${label}</button>`).join('');
+  $('#draw-letter').value = ch.tag || '';
+  g.clearRect(0, 0, cv.width, cv.height);
+  if (ch.doodle) {
+    try { const im = await loadImage(ch.doodle); g.drawImage(im, 0, 0, cv.width, cv.height); } catch { /* 무시 */ }
+  }
+  drawModal.hidden = false;
+  paintDrawUI();
+}
+function cvPoint(e) {
+  const r = cv.getBoundingClientRect();
+  return [(e.clientX - r.left) / r.width * cv.width, (e.clientY - r.top) / r.height * cv.height];
+}
+cv.addEventListener('pointerdown', e => {
+  if (!dr || e.button > 0) return;
+  e.preventDefault();
+  cv.setPointerCapture(e.pointerId);
+  snapshot();
+  const [x, y] = cvPoint(e);
+  g.globalCompositeOperation = dr.eraser ? 'destination-out' : 'source-over';
+  g.strokeStyle = g.fillStyle = dr.color;
+  g.lineWidth = dr.eraser ? dr.size * 2.2 : dr.size;
+  g.lineCap = g.lineJoin = 'round';
+  g.beginPath(); g.arc(x, y, g.lineWidth / 2, 0, Math.PI * 2); g.fill();
+  let last = [x, y], mid = [x, y];
+  const move = ev => {
+    const evs = ev.getCoalescedEvents ? ev.getCoalescedEvents() : [ev];
+    for (const pe of (evs.length ? evs : [ev])) {
+      const p = cvPoint(pe);
+      const m = [(last[0] + p[0]) / 2, (last[1] + p[1]) / 2];
+      g.beginPath(); g.moveTo(mid[0], mid[1]); g.quadraticCurveTo(last[0], last[1], m[0], m[1]); g.stroke();
+      last = p; mid = m;
+    }
+  };
+  const up = () => {
+    cv.removeEventListener('pointermove', move);
+    cv.removeEventListener('pointerup', up);
+    cv.removeEventListener('pointercancel', up);
+    g.globalCompositeOperation = 'source-over';
+    paintDrawUI();
+  };
+  cv.addEventListener('pointermove', move);
+  cv.addEventListener('pointerup', up);
+  cv.addEventListener('pointercancel', up);
+});
+function drawBaseFace() {
+  snapshot();
+  g.save();
+  g.globalCompositeOperation = 'source-over';
+  g.strokeStyle = g.fillStyle = dr.color === '#FFFFFF' && dr.bg === 'white' ? '#191F28' : dr.color;
+  g.lineWidth = 12; g.lineCap = 'round';
+  [[228, 292], [372, 292]].forEach(([x, y]) => { g.beginPath(); g.ellipse(x, y, 17, 26, 0, 0, Math.PI * 2); g.fill(); });
+  g.beginPath(); g.arc(300, 360, 58, Math.PI * .18, Math.PI * .82); g.stroke();
+  g.globalAlpha = .28; g.fillStyle = '#F04452';
+  [[176, 368], [424, 368]].forEach(([x, y]) => { g.beginPath(); g.ellipse(x, y, 34, 20, 0, 0, Math.PI * 2); g.fill(); });
+  g.restore();
+  paintDrawUI();
+}
+function canvasBlank() {
+  const d = g.getImageData(0, 0, cv.width, cv.height).data;
+  for (let i = 3; i < d.length; i += 16) if (d[i]) return false;
+  return true;
+}
+drawModal.addEventListener('click', e => {
+  if (!dr) return;
+  const pen = e.target.closest('[data-pen]');
+  if (pen) { dr.color = pen.dataset.pen; dr.eraser = false; paintDrawUI(); return; }
+  const sz = e.target.closest('[data-size]');
+  if (sz) { dr.size = +sz.dataset.size; paintDrawUI(); return; }
+  const bg = e.target.closest('[data-bg]');
+  if (bg) { dr.bg = bg.dataset.bg; paintDrawUI(); return; }
+  const act = e.target.closest('[data-draw]')?.dataset.draw;
+  if (act === 'eraser') { dr.eraser = !dr.eraser; paintDrawUI(); }
+  if (act === 'undo' && dr.undo.length) { g.putImageData(dr.undo.pop(), 0, 0); paintDrawUI(); }
+  if (act === 'clear') { snapshot(); g.clearRect(0, 0, cv.width, cv.height); paintDrawUI(); }
+  if (act === 'face') drawBaseFace();
+});
+$('#draw-done').addEventListener('click', () => {
+  if (!dr) return;
+  const ch = S.chars[dr.c];
+  ch.doodle = canvasBlank() ? '' : cv.toDataURL('image/png');
+  ch.avBg = dr.bg;
+  ch.tag = $('#draw-letter').value.trim().slice(0, 2);
+  drawModal.hidden = true; dr = null;
+  paintColors(); save();
+});
+sheet.addEventListener('click', e => {
+  const av = e.target.closest('[data-avatar]');
+  if (av) openDraw(+av.dataset.avatar);
 });
 
 /* ---------- 이미지 ---------- */
@@ -567,6 +824,7 @@ $('#accent-list').addEventListener('click', e => {
   colorInput.style.left = r.left + 'px'; colorInput.style.top = r.bottom + 'px';
   colorInput.click();
 });
+$('#opt-rel').addEventListener('change', e => { S.showRel = e.target.checked; paintLook(); save(); });
 $('#btn-swap').addEventListener('click', () => {
   const tags = S.chars.map(c => c.tag);
   S.chars.reverse();
@@ -590,7 +848,7 @@ $$('[aria-haspopup]').forEach(btn => btn.addEventListener('click', e => {
 }));
 document.addEventListener('click', e => { if (!e.target.closest('.pop')) closePops(); });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closePops(); $$('.modal').forEach(m => m.hidden = true); }
+  if (e.key === 'Escape') { closePops(); closeCpop(); $$('.modal').forEach(m => m.hidden = true); dr = null; }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); saveImage(); }
 });
 
@@ -598,7 +856,6 @@ $('#pop-more').addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   closePops();
   const act = b.dataset.act;
-  if (act === 'help') $('#modal-help').hidden = false;
   if (act === 'reset') $('#modal-reset').hidden = false;
   if (act === 'export') exportJSON();
 });
@@ -609,7 +866,7 @@ $('#modal-reset').addEventListener('click', e => {
   const b = e.target.closest('[data-reset]'); if (!b) return;
   const r = b.dataset.reset;
   if (r === 'all') {
-    const keep = { mode: S.mode, theme: S.theme, accent: S.accent, scale: S.scale };
+    const keep = { mode: S.mode, theme: S.theme, accent: S.accent, scale: S.scale, showRel: S.showRel };
     S = { ...blankState(), ...keep };
   } else S.chars[+r] = blankChar(+r);
   paintAll(); save();
@@ -692,6 +949,7 @@ const isSafari = /^((?!chrome|android|crios|fxios).)*safari/i.test(navigator.use
 async function renderBlob() {
   if (document.activeElement && sheet.contains(document.activeElement)) document.activeElement.blur();
   setActive(null);
+  closeCpop();
   rendering = true;
   stageInner.classList.add('rendering');
   if (compact) { setCompact(false); sheet.style.width = ''; }
