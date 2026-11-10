@@ -479,7 +479,9 @@ $('#stage').addEventListener('scroll', () => { if (cp) placeCpop(); }, { passive
 /* ---------- 특징 직접 그리기 ---------- */
 // 그림판 밑그림 (viewBox 0 0 100 100). 손은 손등 쪽, 왼손은 엄지가 오른쪽.
 const HAND = '<rect x="28.5" y="28" width="9" height="30" rx="4.5"/><rect x="38.5" y="18" width="9.5" height="38" rx="4.75"/><rect x="49" y="14" width="9.5" height="42" rx="4.75"/><rect x="59.5" y="20" width="9" height="36" rx="4.5"/><rect x="-1" y="-5" width="27" height="10" rx="5" transform="translate(63 77) rotate(-52)"/><rect x="34" y="78" width="28" height="24" rx="4"/><rect x="27" y="46" width="42" height="40" rx="13"/>';
-const EAR = '<path d="M54 10C33 8 22 27 24 46c1.5 14 9 21 13 31 3 9 9 15 16 13 7-2 8-10 9-16 1-8 9-13 12-23C80 34 75 12 54 10Z"/><path class="ln" d="M53 22c-13 0-19 12-16 23 2 8 9 10 11 16 2 5-1 10 2 13"/><path class="ln" d="M60 28c7 5 9 13 5 21-3 6-8 8-9 13"/><path class="ln" d="M63 60c4 1 6 4 5 8"/>';
+// 귀: 옆얼굴(프로필)에 붙은 귀. 왼쪽 귀는 캐릭터의 왼쪽 옆모습이라 코가 화면 왼쪽을 향함.
+// 피어싱으로 오해하지 않도록 귀 안쪽 선은 넣지 않음.
+const EAR = '<path d="M38 100V87c-6-1-10-4-10-8 0-2 1-3 2-4-3-1-3-4-1-5-2-1-3-3-1-5l-1-4c-5-1-9-3-8-6 0-2 3-5 5-8l1-6c-2-9 0-17 5-23C40 9 56 4 70 9c14 5 22 19 20 35-1 9-5 15-8 21-2 5-3 11-3 18v17Z"/><path d="M60 37c9-3 15 4 14 13-1 7-5 9-6 15-1 5-6 8-9 4-2-3-1-6-2-9-1-5-4-7-4-12 0-6 3-10 7-11Z"/>';
 const mirror = (inner) => `<g transform="translate(100 0) scale(-1 1)">${inner}</g>`;
 const SK = {
   circle: { label: '원', svg: '<circle cx="50" cy="50" r="38"/>' },
