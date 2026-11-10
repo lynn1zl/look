@@ -276,20 +276,15 @@ kbd {
 .id-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .char.mirror .id-txt { align-items: flex-end; }
 .avatar {
-  position: relative; flex: none; width: 60px; height: 60px; border-radius: 50%; padding: 0; border: 0;
-  display: grid; place-items: center; overflow: hidden; cursor: pointer;
+  flex: none; width: 60px; height: 60px; border-radius: 50%;
+  display: grid; place-items: center; text-align: center; overflow: hidden;
   background: var(--s-accent); color: #fff;
-  font-size: 25px; font-weight: 800; letter-spacing: -0.04em; line-height: 1;
-  transition: transform .15s var(--ease), box-shadow .15s;
+  font-size: 25px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; white-space: nowrap;
 }
-.avatar.light { box-shadow: inset 0 0 0 1px var(--s-line); }
-.avatar:hover { transform: scale(1.04); box-shadow: 0 0 0 4px var(--s-accent-soft); }
-.avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-.avatar-letter { position: relative; white-space: nowrap; }
-.avatar.is-empty { background: var(--s-card) !important; box-shadow: inset 0 0 0 1.5px var(--s-line); }
-.avatar.is-empty::after { content: "+"; color: var(--s-text-3); font-weight: 500; }
-.exporting .avatar { transform: none; }
-.exporting .avatar.is-empty { display: none; }
+.avatar.ce:hover, .avatar.ce:focus { background: var(--s-accent); box-shadow: 0 0 0 4px var(--s-accent-soft); }
+.avatar.ce:empty::before { color: rgba(255, 255, 255, .55); }
+.exporting .avatar.ce { background: var(--s-accent) !important; }
+.exporting .avatar:empty { display: none; }
 .name {
   font-size: 30px; font-weight: 800; line-height: 1.15; letter-spacing: -0.045em;
   align-self: flex-start; max-width: 100%;
@@ -454,7 +449,7 @@ kbd {
 .rel-line.back .arrow { transform: scaleX(-1); }
 .sheet.no-rel .rels { display: none; }
 /* 관계성을 끄면 가운데는 페어명 폭만큼만 */
-.sheet.no-rel:not(.mode-1):not(.compact) { width: max-content; grid-template-columns: 440px fit-content(220px) 440px; }
+.sheet.no-rel:not(.mode-1):not(.compact) { width: max-content; column-gap: 20px; grid-template-columns: 440px fit-content(150px) 440px; }
 .exporting .pair-top:not(:has(.ce:not(:empty))) .eyebrow { display: none; }
 
 /* 커미션 출처 */
@@ -586,13 +581,14 @@ kbd {
 .draw-sub { margin: 0 0 16px; font-size: 13px; color: var(--text-3); }
 .draw-stage {
   position: relative; width: min(300px, 72vw); aspect-ratio: 1; margin: 0 auto 16px;
-  border-radius: 50%; overflow: hidden; background: var(--accent);
+  border-radius: 28px; overflow: hidden; background: #ffffff;
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .08), 0 8px 24px rgba(0, 23, 51, .12);
   touch-action: none;
 }
 .draw-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; touch-action: none; }
-.draw-guide { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-.draw-guide * { fill: none; stroke: rgba(127, 127, 127, .35); stroke-width: .5; stroke-dasharray: 2 2; }
+.draw-tpl { position: absolute; inset: 0; pointer-events: none; --tpl-ink: #b0b8c1; --tpl-fill: #f7f8fa; }
+.draw-tpl .tpl { width: 100%; height: 100%; }
+.draw-acts [hidden] { display: none; }
 .draw-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .pen-colors { display: flex; gap: 8px; flex-wrap: wrap; }
 .pen-dot {
@@ -662,3 +658,52 @@ kbd {
   .seg button { min-width: 44px; padding: 0 8px; }
   .appbar { gap: 8px; }
 }
+
+/* ---------- 특징 직접 그리기 ---------- */
+.tpl * {
+  fill: var(--tpl-fill, var(--s-bg)); stroke: var(--tpl-ink, var(--s-ph));
+  stroke-width: 1.5px; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke;
+}
+.tpl .ln { fill: none; }
+.add-eye + .add-eye { margin-left: 4px; }
+.feat-text:empty + .sketches { margin-top: 0; }
+.sketches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.sketches:empty { display: none; }
+.char.mirror .sketches { direction: rtl; }
+.sk { position: relative; display: flex; flex-direction: column; gap: 6px; direction: ltr; min-width: 0; }
+.sk-pad {
+  position: relative; aspect-ratio: 1; border: 0; padding: 0; border-radius: 16px; overflow: hidden; cursor: pointer;
+  background: var(--s-bg); box-shadow: inset 0 0 0 1px var(--s-hair, var(--s-line));
+  --tpl-ink: var(--s-ph); --tpl-fill: var(--s-bg);
+  transition: box-shadow .15s;
+}
+.sk-pad:hover { box-shadow: inset 0 0 0 2px var(--s-accent); }
+.sk-pad .tpl, .sk-pad img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.sk-cap { font-size: 12.5px; font-weight: 600; color: var(--s-text-2); text-align: center; white-space: nowrap; overflow: hidden; }
+.sk-del {
+  position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: 0; padding: 4px;
+  background: #191f28; color: #fff; opacity: 0; transition: opacity .15s; cursor: pointer;
+}
+.sk-del svg { width: 100%; height: 100%; }
+.sk:hover .sk-del, .sk:focus-within .sk-del { opacity: 1; }
+@media (hover: none) { .sk-del { opacity: .85; } }
+.exporting .sk-del { display: none; }
+.exporting .sk-pad { box-shadow: inset 0 0 0 1px var(--s-hair, var(--s-line)); }
+
+.skmenu {
+  position: fixed; z-index: 60; width: 300px; padding: 14px;
+  background: var(--surface); border-radius: 20px; box-shadow: var(--shadow-pop);
+  animation: pop-in .18s var(--ease);
+}
+.skmenu[hidden] { display: none; }
+.skm-title { font-size: 14px; font-weight: 700; margin: 2px 4px 12px; letter-spacing: -0.02em; }
+.skm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.skm-grid button {
+  border: 0; background: var(--fill); border-radius: 14px; padding: 10px 6px 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 600; color: var(--text-2);
+  --tpl-ink: var(--text-3); --tpl-fill: var(--surface);
+  transition: background .15s;
+}
+.skm-grid button:hover { background: var(--accent-soft); color: var(--accent); --tpl-ink: var(--accent); }
+.skm-grid .tpl { width: 52px; height: 52px; border-radius: 10px; background: var(--surface); }

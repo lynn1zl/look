@@ -118,20 +118,25 @@
   <button type="button" class="cp-link danger" id="cp-del-eye2">이 눈색 칸 지우기</button>
 </div>
 
+<div class="skmenu" id="skmenu" role="menu" aria-label="그림판 고르기" hidden>
+  <div class="skm-title">어떤 그림판을 넣을까요?</div>
+  <div class="skm-grid" id="skmenu-grid"></div>
+</div>
+
 <div class="modal" id="modal-draw" hidden>
   <div class="modal-card draw-card" role="dialog" aria-modal="true" aria-labelledby="draw-title">
-    <h2 id="draw-title">동그라미 꾸미기</h2>
-    <p class="draw-sub">마우스나 손가락으로 바로 그려요. 그림이 없으면 글자가 보여요.</p>
+    <h2 id="draw-title">특징 그리기</h2>
+    <p class="draw-sub">마우스나 손가락으로 바로 그려요. 반지 · 피어싱 · 점 위치를 표시해 보세요.</p>
     <div class="draw-stage" id="draw-stage">
+      <div class="draw-tpl" id="draw-tpl"></div>
       <canvas id="draw-cv" width="600" height="600"></canvas>
-      <svg class="draw-guide" viewBox="0 0 100 100" aria-hidden="true"><path d="M50 8v84M8 48h84" /><ellipse cx="50" cy="52" rx="30" ry="34"/></svg>
     </div>
     <div class="draw-row">
       <div class="pen-colors" id="pen-colors"></div>
       <div class="pen-sizes" id="pen-sizes">
-        <button type="button" data-size="6" aria-label="가는 펜"><i style="--s:5px"></i></button>
-        <button type="button" data-size="12" aria-label="중간 펜"><i style="--s:9px"></i></button>
-        <button type="button" data-size="22" aria-label="굵은 펜"><i style="--s:14px"></i></button>
+        <button type="button" data-size="5" aria-label="가는 펜"><i style="--s:4px"></i></button>
+        <button type="button" data-size="10" aria-label="중간 펜"><i style="--s:8px"></i></button>
+        <button type="button" data-size="20" aria-label="굵은 펜"><i style="--s:13px"></i></button>
       </div>
     </div>
     <div class="draw-acts">
@@ -140,8 +145,6 @@
       <button type="button" data-draw="undo">되돌리기</button>
       <button type="button" data-draw="clear">전체 지우기</button>
     </div>
-    <div class="draw-opt"><span>배경</span><div class="bg-list" id="bg-list"></div></div>
-    <div class="draw-opt"><span>글자</span><input id="draw-letter" class="draw-letter" maxlength="2" placeholder="A" autocomplete="off"></div>
     <div class="modal-actions"><button type="button" class="btn btn-ghost" data-close>취소</button><button type="button" class="btn btn-primary" id="draw-done">완료</button></div>
   </div>
 </div>

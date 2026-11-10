@@ -37,13 +37,14 @@ const toCol = (v, fb) => {
   return fb;
 };
 const blankChar = (i) => ({
-  tag: i ? 'B' : 'A', doodle: '', avBg: 'accent',
+  tag: i ? 'B' : 'A',
   name: '', gender: '', age: '', height: '', job: '',
   hairLabel: '머리색', eyeLabel: '눈색', eye2Label: '오른쪽 눈',
   hair: col(i ? '#6E4B36' : '#D9AE3F'),
   eye: col(i ? '#4F9A62' : '#F2E15C'),
   eye2On: false, eye2: col(i ? '#7FB0E0' : '#C9A0DC'),
   features: '',
+  sketches: [], // 특징 그리기 칸: { kind, label, doodle }
   ok: '', ng: '',
   body: blankImg(), face: blankImg(), face2: blankImg(),
 });
@@ -92,6 +93,8 @@ function normalize(d) {
     const c = (d.chars && d.chars[i]) || {};
     const o = { ...b.chars[i], ...c, body: { ...blankImg(), ...(c.body || {}) }, face: { ...blankImg(), ...(c.face || {}) }, face2: { ...blankImg(), ...(c.face2 || {}) } };
     ['hair', 'eye', 'eye2'].forEach(k => { o[k] = toCol(c[k], b.chars[i][k]); });
+    o.sketches = Array.isArray(c.sketches) ? c.sketches.filter(s => s && SK[s.kind]).slice(0, SK_MAX).map(s => ({ kind: s.kind, label: String(s.label ?? SK[s.kind].label), doodle: String(s.doodle || '') })) : [];
+    delete o.doodle; delete o.avBg;
     return o;
   });
   return out;
@@ -144,7 +147,7 @@ function charHTML(c) {
   const meta = (f, k, ph) => `<div class="meta-item"><span class="k">${k}</span>${ce(`data-c="${c}" data-f="${f}"`, ph, 'v')}</div>`;
   return `<section class="char${c ? ' mirror' : ''}" data-c="${c}">
     <header class="id">
-      <button type="button" class="avatar" data-avatar="${c}" title="눌러서 얼굴 그리기 · 글자 바꾸기" aria-label="${c ? 'B' : 'A'} 동그라미 편집"><img alt="" hidden><span class="avatar-letter"></span></button>
+      ${ce(`data-c="${c}" data-f="tag"`, c ? 'B' : 'A', 'avatar')}
       <div class="id-txt">
         ${ce(`data-c="${c}" data-f="name"`, '이름', 'name')}
         <div class="meta">
@@ -168,8 +171,9 @@ function charHTML(c) {
       <div class="okng-row ng"><span class="okng-k">NG</span>${ce(`data-c="${c}" data-f="ng"`, '캐릭터로 안 되는 것 한 줄', 'okng-v')}</div>
     </div>
     <div class="block feat">
-      <div class="block-title">주요 특징</div>
+      <div class="block-title">주요 특징<button type="button" class="add-eye" data-add-sketch title="손 · 귀 · 원 그림판을 넣고 직접 그려요">+ 특징 그리기</button></div>
       ${ce(`data-c="${c}" data-f="features"`, '예) 입술점 · 투톤 머리 · 피어싱 · 약지에 은반지', 'feat-text', true)}
+      <div class="sketches" data-sketches="${c}"></div>
     </div>
   </section>`;
 }
@@ -215,6 +219,7 @@ function setText(el, v) { if (document.activeElement !== el) el.textContent = v 
 function fieldValue(el) {
   if (el.dataset.p) return S.pair[el.dataset.p];
   const c = S.chars[+el.dataset.c];
+  if (el.dataset.sk !== undefined) return c.sketches[+el.dataset.sk]?.label;
   if (el.dataset.hex) return c[el.dataset.hex];
   return c[el.dataset.f];
 }
@@ -244,28 +249,6 @@ function luminance(hex) {
   const ch = [n >> 16 & 255, n >> 8 & 255, n & 255].map(x => { x /= 255; return x <= .03928 ? x / 12.92 : ((x + .055) / 1.055) ** 2.4; });
   return .2126 * ch[0] + .7152 * ch[1] + .0722 * ch[2];
 }
-function avatarBg(ch) {
-  if (ch.avBg === 'hair') return colorCSS(ch.hair);
-  if (ch.avBg === 'white') return '#ffffff';
-  if (ch.avBg === 'gray') return 'var(--s-card)';
-  return 'var(--s-accent)';
-}
-function avatarInk(ch) {
-  if (ch.avBg === 'white' || ch.avBg === 'gray') return 'var(--s-text)';
-  if (ch.avBg === 'hair') return luminance(ch.hair.a) > .5 ? '#191f28' : '#ffffff';
-  return '#ffffff';
-}
-function paintAvatar(el) {
-  const ch = S.chars[+el.dataset.avatar];
-  el.style.background = avatarBg(ch);
-  el.style.color = avatarInk(ch);
-  el.classList.toggle('light', ch.avBg === 'white' || ch.avBg === 'gray');
-  const img = $('img', el);
-  if (ch.doodle) { if (img.getAttribute('src') !== ch.doodle) img.src = ch.doodle; img.hidden = false; }
-  else { img.hidden = true; img.removeAttribute('src'); }
-  $('.avatar-letter', el).textContent = ch.doodle ? '' : (ch.tag || '');
-  el.classList.toggle('is-empty', !ch.doodle && !ch.tag);
-}
 function paintColors() {
   $$('.color-row', sheet).forEach(row => {
     const c = S.chars[+row.dataset.c], key = row.dataset.color;
@@ -279,12 +262,12 @@ function paintColors() {
     $('[data-add-eye]', el).hidden = ch.eye2On;
     $('.colors', el).classList.toggle('three', ch.eye2On);
   });
-  $$('.avatar', sheet).forEach(paintAvatar);
 }
 function paintAll() {
   $$('.ce', sheet).forEach(el => setText(el, fieldValue(el)));
   $$('.slot', sheet).forEach(paintImg);
   paintColors();
+  paintSketches();
   paintWho();
   paintLook();
 }
@@ -324,6 +307,7 @@ sheet.addEventListener('input', e => {
   else v = v.replace(/\n$/, '');
   if (el.dataset.p) S.pair[el.dataset.p] = v;
   else if (el.dataset.hex) return; // 컬러코드는 입력을 마칠 때 반영
+  else if (el.dataset.sk !== undefined) { const s = S.chars[+el.dataset.c].sketches[+el.dataset.sk]; if (s) s.label = v; }
   else S.chars[+el.dataset.c][el.dataset.f] = v;
   if (el.dataset.f === 'name') paintWho();
   save();
@@ -492,39 +476,106 @@ document.addEventListener('pointerdown', e => {
 window.addEventListener('resize', () => { if (cp) placeCpop(); });
 $('#stage').addEventListener('scroll', () => { if (cp) placeCpop(); }, { passive: true });
 
-/* ---------- 동그라미: 글자 · 얼굴 그리기 ---------- */
+/* ---------- 특징 직접 그리기 ---------- */
+// 그림판 밑그림 (viewBox 0 0 100 100). 손은 손등 쪽, 왼손은 엄지가 오른쪽.
+const HAND = '<rect x="28.5" y="28" width="9" height="30" rx="4.5"/><rect x="38.5" y="18" width="9.5" height="38" rx="4.75"/><rect x="49" y="14" width="9.5" height="42" rx="4.75"/><rect x="59.5" y="20" width="9" height="36" rx="4.5"/><rect x="-1" y="-5" width="27" height="10" rx="5" transform="translate(63 77) rotate(-52)"/><rect x="34" y="78" width="28" height="24" rx="4"/><rect x="27" y="46" width="42" height="40" rx="13"/>';
+const EAR = '<path d="M54 10C33 8 22 27 24 46c1.5 14 9 21 13 31 3 9 9 15 16 13 7-2 8-10 9-16 1-8 9-13 12-23C80 34 75 12 54 10Z"/><path class="ln" d="M53 22c-13 0-19 12-16 23 2 8 9 10 11 16 2 5-1 10 2 13"/><path class="ln" d="M60 28c7 5 9 13 5 21-3 6-8 8-9 13"/><path class="ln" d="M63 60c4 1 6 4 5 8"/>';
+const mirror = (inner) => `<g transform="translate(100 0) scale(-1 1)">${inner}</g>`;
+const SK = {
+  circle: { label: '원', svg: '<circle cx="50" cy="50" r="38"/>' },
+  lhand: { label: '왼손', svg: HAND },
+  rhand: { label: '오른손', svg: mirror(HAND) },
+  lear: { label: '왼쪽 귀', svg: EAR },
+  rear: { label: '오른쪽 귀', svg: mirror(EAR) },
+  blank: { label: '빈 칸', svg: '' },
+};
+const SK_MAX = 4;
+const tplSVG = (kind) => `<svg class="tpl" viewBox="0 0 100 100" aria-hidden="true">${SK[kind].svg}</svg>`;
+
+function paintSketches() {
+  $$('[data-sketches]', sheet).forEach(box => {
+    const c = +box.dataset.sketches, list = S.chars[c].sketches;
+    box.innerHTML = list.map((s, i) => `<div class="sk">
+      <button type="button" class="sk-pad" data-sk-open="${i}" aria-label="${s.label || SK[s.kind].label} 그리기">${tplSVG(s.kind)}${s.doodle ? `<img alt="" src="${s.doodle}">` : ''}</button>
+      ${ce(`data-c="${c}" data-sk="${i}"`, SK[s.kind].label, 'sk-cap')}
+      <button type="button" class="sk-del" data-sk-del="${i}" title="이 그림 칸 지우기" aria-label="그림 칸 지우기">${ICON.minus}</button>
+    </div>`).join('');
+    $$('.sk-cap', box).forEach(el => { el.textContent = list[+el.dataset.sk].label; });
+    if (probeCE !== 'plaintext-only') $$('.ce', box).forEach(el => { el.contentEditable = 'true'; });
+    const add = $('[data-add-sketch]', box.closest('.char'));
+    add.hidden = list.length >= SK_MAX;
+  });
+}
+const probeCE = (() => { const d = document.createElement('div'); d.contentEditable = 'plaintext-only'; return d.contentEditable === 'plaintext-only' ? 'plaintext-only' : 'true'; })();
+
+// 그림판 고르기 메뉴
+const skMenu = $('#skmenu');
+let skFor = null;
+$('#skmenu-grid').innerHTML = Object.entries(SK).map(([k, v]) => `<button type="button" data-sk-kind="${k}">${tplSVG(k)}<span>${v.label}</span></button>`).join('');
+function openSkMenu(c, anchor) {
+  skFor = c;
+  skMenu.hidden = false;
+  const r = anchor.getBoundingClientRect(), w = skMenu.offsetWidth, h = skMenu.offsetHeight;
+  skMenu.style.left = Math.min(Math.max(12, r.right - w), innerWidth - w - 12) + 'px';
+  let top = r.bottom + 8;
+  if (top + h > innerHeight - 12) top = Math.max(12, r.top - h - 8);
+  skMenu.style.top = top + 'px';
+}
+function closeSkMenu() { skMenu.hidden = true; skFor = null; }
+skMenu.addEventListener('click', e => {
+  const b = e.target.closest('[data-sk-kind]'); if (!b || skFor === null) return;
+  const c = skFor, kind = b.dataset.skKind;
+  const list = S.chars[c].sketches;
+  if (list.length >= SK_MAX) return;
+  list.push({ kind, label: SK[kind].label, doodle: '' });
+  closeSkMenu(); paintSketches(); save();
+  openDraw(c, list.length - 1);
+});
+document.addEventListener('pointerdown', e => {
+  if (!skMenu.hidden && !skMenu.contains(e.target) && !e.target.closest('[data-add-sketch]')) closeSkMenu();
+});
+
+sheet.addEventListener('click', e => {
+  const add = e.target.closest('[data-add-sketch]');
+  if (add) { const c = +add.closest('.char').dataset.c; if (skFor === c) closeSkMenu(); else openSkMenu(c, add); return; }
+  const op = e.target.closest('[data-sk-open]');
+  if (op) { openDraw(+op.closest('[data-sketches]').dataset.sketches, +op.dataset.skOpen); return; }
+  const del = e.target.closest('[data-sk-del]');
+  if (del) {
+    const c = +del.closest('[data-sketches]').dataset.sketches;
+    S.chars[c].sketches.splice(+del.dataset.skDel, 1);
+    paintSketches(); save(); toast('그림 칸을 지웠어요');
+  }
+});
+
+// 그리기 창
 const drawModal = $('#modal-draw');
 const cv = $('#draw-cv');
 const g = cv.getContext('2d');
-const PEN_SIZES = [6, 12, 22];
-const AV_BGS = [['accent', '포인트'], ['hair', '머리색'], ['white', '흰색'], ['gray', '회색']];
-let dr = null; // 편집 중 상태
+let dr = null; // { c, i, color, size, eraser, undo }
 function snapshot() {
   dr.undo.push(g.getImageData(0, 0, cv.width, cv.height));
   if (dr.undo.length > 20) dr.undo.shift();
 }
 function paintDrawUI() {
-  const ch = S.chars[dr.c];
-  const fake = { ...ch, avBg: dr.bg };
-  $('#draw-stage').style.background = avatarBg(fake).replace('var(--s-accent)', S.accent).replace('var(--s-card)', '#f2f4f6');
   $$('#pen-colors button').forEach(b => b.setAttribute('aria-pressed', !dr.eraser && b.dataset.pen === dr.color));
   $$('#pen-sizes button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.size === dr.size));
   $('[data-draw="eraser"]').setAttribute('aria-pressed', dr.eraser);
-  $$('#bg-list button').forEach(b => b.setAttribute('aria-pressed', b.dataset.bg === dr.bg));
   $('[data-draw="undo"]').disabled = !dr.undo.length;
 }
-async function openDraw(c) {
-  const ch = S.chars[c];
-  dr = { c, color: '#191F28', size: PEN_SIZES[1], eraser: false, bg: ch.avBg, undo: [] };
-  const hair = ch.hair.a, eye = ch.eye.a;
-  $('#pen-colors').innerHTML = ['#191F28', '#FFFFFF', '#F04452', '#FF8A3D', hair, eye]
-    .filter((v, i, arr) => arr.indexOf(v) === i)
+async function openDraw(c, i) {
+  const ch = S.chars[c], sk = ch.sketches[i];
+  if (!sk) return;
+  dr = { c, i, color: '#191F28', size: 10, eraser: false, undo: [] };
+  $('#draw-title').textContent = `${ch.name || ch.tag || (c ? 'B' : 'A')} · ${sk.label || SK[sk.kind].label}`;
+  $('#draw-tpl').innerHTML = tplSVG(sk.kind);
+  $('#pen-colors').innerHTML = ['#191F28', '#8B95A1', '#F04452', '#FF8A3D', '#3182F6', ch.hair.a, ch.eye.a]
+    .filter((v, k, arr) => arr.indexOf(v) === k)
     .map(v => `<button type="button" class="pen-dot" data-pen="${v}" style="--c:${v}" aria-label="펜 색 ${v}"></button>`).join('');
-  $('#bg-list').innerHTML = AV_BGS.map(([k, label]) => `<button type="button" data-bg="${k}">${label}</button>`).join('');
-  $('#draw-letter').value = ch.tag || '';
+  $('[data-draw="face"]').hidden = sk.kind !== 'circle';
   g.clearRect(0, 0, cv.width, cv.height);
-  if (ch.doodle) {
-    try { const im = await loadImage(ch.doodle); g.drawImage(im, 0, 0, cv.width, cv.height); } catch { /* 무시 */ }
+  if (sk.doodle) {
+    try { const im = await loadImage(sk.doodle); g.drawImage(im, 0, 0, cv.width, cv.height); } catch { /* 무시 */ }
   }
   drawModal.hidden = false;
   paintDrawUI();
@@ -541,7 +592,7 @@ cv.addEventListener('pointerdown', e => {
   const [x, y] = cvPoint(e);
   g.globalCompositeOperation = dr.eraser ? 'destination-out' : 'source-over';
   g.strokeStyle = g.fillStyle = dr.color;
-  g.lineWidth = dr.eraser ? dr.size * 2.2 : dr.size;
+  g.lineWidth = dr.eraser ? dr.size * 2.4 : dr.size;
   g.lineCap = g.lineJoin = 'round';
   g.beginPath(); g.arc(x, y, g.lineWidth / 2, 0, Math.PI * 2); g.fill();
   let last = [x, y], mid = [x, y];
@@ -568,13 +619,12 @@ cv.addEventListener('pointerdown', e => {
 function drawBaseFace() {
   snapshot();
   g.save();
-  g.globalCompositeOperation = 'source-over';
-  g.strokeStyle = g.fillStyle = dr.color === '#FFFFFF' && dr.bg === 'white' ? '#191F28' : dr.color;
+  g.strokeStyle = g.fillStyle = dr.color;
   g.lineWidth = 12; g.lineCap = 'round';
-  [[228, 292], [372, 292]].forEach(([x, y]) => { g.beginPath(); g.ellipse(x, y, 17, 26, 0, 0, Math.PI * 2); g.fill(); });
-  g.beginPath(); g.arc(300, 360, 58, Math.PI * .18, Math.PI * .82); g.stroke();
+  [[228, 282], [372, 282]].forEach(([x, y]) => { g.beginPath(); g.ellipse(x, y, 17, 26, 0, 0, Math.PI * 2); g.fill(); });
+  g.beginPath(); g.arc(300, 350, 58, Math.PI * .18, Math.PI * .82); g.stroke();
   g.globalAlpha = .28; g.fillStyle = '#F04452';
-  [[176, 368], [424, 368]].forEach(([x, y]) => { g.beginPath(); g.ellipse(x, y, 34, 20, 0, 0, Math.PI * 2); g.fill(); });
+  [[176, 358], [424, 358]].forEach(([x, y]) => { g.beginPath(); g.ellipse(x, y, 34, 20, 0, 0, Math.PI * 2); g.fill(); });
   g.restore();
   paintDrawUI();
 }
@@ -589,8 +639,6 @@ drawModal.addEventListener('click', e => {
   if (pen) { dr.color = pen.dataset.pen; dr.eraser = false; paintDrawUI(); return; }
   const sz = e.target.closest('[data-size]');
   if (sz) { dr.size = +sz.dataset.size; paintDrawUI(); return; }
-  const bg = e.target.closest('[data-bg]');
-  if (bg) { dr.bg = bg.dataset.bg; paintDrawUI(); return; }
   const act = e.target.closest('[data-draw]')?.dataset.draw;
   if (act === 'eraser') { dr.eraser = !dr.eraser; paintDrawUI(); }
   if (act === 'undo' && dr.undo.length) { g.putImageData(dr.undo.pop(), 0, 0); paintDrawUI(); }
@@ -599,16 +647,10 @@ drawModal.addEventListener('click', e => {
 });
 $('#draw-done').addEventListener('click', () => {
   if (!dr) return;
-  const ch = S.chars[dr.c];
-  ch.doodle = canvasBlank() ? '' : cv.toDataURL('image/png');
-  ch.avBg = dr.bg;
-  ch.tag = $('#draw-letter').value.trim().slice(0, 2);
+  const sk = S.chars[dr.c].sketches[dr.i];
+  if (sk) sk.doodle = canvasBlank() ? '' : cv.toDataURL('image/png');
   drawModal.hidden = true; dr = null;
-  paintColors(); save();
-});
-sheet.addEventListener('click', e => {
-  const av = e.target.closest('[data-avatar]');
-  if (av) openDraw(+av.dataset.avatar);
+  paintSketches(); save();
 });
 
 /* ---------- 이미지 ---------- */
@@ -865,7 +907,7 @@ $$('[aria-haspopup]').forEach(btn => btn.addEventListener('click', e => {
 }));
 document.addEventListener('click', e => { if (!e.target.closest('.pop')) closePops(); });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { closePops(); closeCpop(); $$('.modal').forEach(m => m.hidden = true); dr = null; }
+  if (e.key === 'Escape') { closePops(); closeCpop(); closeSkMenu(); $$('.modal').forEach(m => m.hidden = true); dr = null; }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') { e.preventDefault(); saveImage(); }
 });
 
@@ -968,6 +1010,7 @@ async function renderBlob() {
   if (document.activeElement && sheet.contains(document.activeElement)) document.activeElement.blur();
   setActive(null);
   closeCpop();
+  closeSkMenu();
   rendering = true;
   stageInner.classList.add('rendering');
   if (compact) { setCompact(false); sheet.style.width = ''; }
