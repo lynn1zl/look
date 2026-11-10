@@ -665,6 +665,7 @@ kbd {
   stroke-width: 1.5px; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke;
 }
 .tpl .ln { fill: none; }
+.tpl .dt { fill: none; stroke-width: 1.1px; stroke-opacity: .6; }
 .add-eye + .add-eye { margin-left: 4px; }
 .feat-text:empty + .sketches { margin-top: 0; }
 .sketches { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
