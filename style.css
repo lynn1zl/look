@@ -708,3 +708,7 @@ kbd {
 }
 .skm-grid button:hover { background: var(--accent-soft); color: var(--accent); --tpl-ink: var(--accent); }
 .skm-grid .tpl { width: 52px; height: 52px; border-radius: 10px; background: var(--surface); }
+
+/* ---------- 의상 (비워 두면 저장 이미지에서 빠짐) ---------- */
+.outfit-text { font-size: 15px; line-height: 1.65; color: var(--s-text); white-space: pre-wrap; }
+.exporting .outfit:has(.outfit-text:empty) { display: none; }

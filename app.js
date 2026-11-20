@@ -43,7 +43,7 @@ const blankChar = (i) => ({
   hair: col(i ? '#6E4B36' : '#D9AE3F'),
   eye: col(i ? '#4F9A62' : '#F2E15C'),
   eye2On: false, eye2: col(i ? '#7FB0E0' : '#C9A0DC'),
-  features: '',
+  features: '', outfit: '',
   sketches: [], // 특징 그리기 칸: { kind, label, doodle }
   ok: '', ng: '',
   body: blankImg(), face: blankImg(), face2: blankImg(),
@@ -174,6 +174,10 @@ function charHTML(c) {
       <div class="block-title">주요 특징<button type="button" class="add-eye" data-add-sketch title="손 · 귀 · 원 그림판을 넣고 직접 그려요">+ 특징 그리기</button></div>
       ${ce(`data-c="${c}" data-f="features"`, '예) 입술점 · 투톤 머리 · 피어싱 · 약지에 은반지', 'feat-text', true)}
       <div class="sketches" data-sketches="${c}"></div>
+    </div>
+    <div class="block outfit">
+      <div class="block-title">의상</div>
+      ${ce(`data-c="${c}" data-f="outfit"`, '예) 검은 후드 집업 · 은색 체인 목걸이 · 낡은 운동화', 'outfit-text', true)}
     </div>
   </section>`;
 }
